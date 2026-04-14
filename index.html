@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>CyberShield — Threat Intelligence Dashboard</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',sans-serif;background:#0f1117;color:#e2e8f0;min-height:100vh}
+
+  /* NAVBAR */
+  .navbar{display:flex;align-items:center;justify-content:space-between;padding:14px 32px;background:#161b27;border-bottom:1px solid #1e2a3a}
+  .nav-brand{display:flex;align-items:center;gap:12px}
+  .nav-icon{width:36px;height:36px;background:#1d4ed8;border-radius:9px;display:flex;align-items:center;justify-content:center}
+  .nav-icon svg{width:20px;height:20px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .nav-title{font-size:17px;font-weight:600;color:#f1f5f9}
+  .nav-sub{font-size:11px;color:#64748b;margin-top:1px}
+  .nav-right{display:flex;align-items:center;gap:10px}
+  .pill-live{background:#052e16;color:#4ade80;border:1px solid #166534;font-size:11px;padding:4px 12px;border-radius:20px;font-weight:600;display:flex;align-items:center;gap:5px}
+  .live-dot{width:6px;height:6px;background:#4ade80;border-radius:50%;animation:pulse 1.5s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  .btn{font-size:13px;padding:8px 18px;border-radius:8px;border:none;cursor:pointer;font-weight:500;transition:all .15s}
+  .btn-primary{background:#1d4ed8;color:#fff}
+  .btn-primary:hover{background:#1e40af}
+  .btn-ghost{background:transparent;color:#94a3b8;border:1px solid #1e2a3a}
+  .btn-ghost:hover{background:#1e2a3a;color:#e2e8f0}
+
+  /* METRICS */
+  .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;padding:24px 32px}
+  .metric-card{background:#161b27;border:1px solid #1e2a3a;border-radius:12px;padding:20px}
+  .metric-label{font-size:12px;color:#64748b;font-weight:500;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+  .metric-val{font-size:28px;font-weight:700;color:#f1f5f9}
+  .metric-val.danger{color:#f87171}
+  .metric-val.success{color:#4ade80}
+  .metric-val.warning{color:#fbbf24}
+  .metric-trend{font-size:11px;margin-top:6px;color:#64748b}
+
+  /* RISK BAR */
+  .risk-section{padding:0 32px 20px}
+  .risk-header{display:flex;justify-content:space-between;font-size:12px;color:#64748b;margin-bottom:6px}
+  .risk-track{height:6px;background:#1e2a3a;border-radius:3px;overflow:hidden}
+  .risk-fill{height:100%;border-radius:3px;transition:width .5s,background .5s}
+
+  /* ADD SCAN */
+  .add-section{padding:0 32px 20px;display:flex;gap:10px}
+  .scan-input{flex:1;font-size:13px;padding:10px 14px;border-radius:8px;border:1px solid #1e2a3a;background:#161b27;color:#e2e8f0;outline:none;transition:border .15s}
+  .scan-input:focus{border-color:#1d4ed8}
+  .scan-input::placeholder{color:#475569}
+  .scan-select{font-size:13px;padding:10px 12px;border-radius:8px;border:1px solid #1e2a3a;background:#161b27;color:#e2e8f0;outline:none;cursor:pointer}
+
+  /* TABLE */
+  .table-section{padding:0 32px 24px}
+  .table-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+  .table-title{font-size:13px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.06em}
+  .table-wrap{border:1px solid #1e2a3a;border-radius:12px;overflow:hidden}
+  .t-head{display:grid;grid-template-columns:28px 160px 1fr 90px 100px;gap:12px;padding:10px 16px;background:#1a2235;font-size:11px;font-weight:600;color:#475569;text-transform:uppercase;letter-spacing:.05em}
+  .t-row{display:grid;grid-template-columns:28px 160px 1fr 90px 100px;gap:12px;align-items:center;padding:12px 16px;border-top:1px solid #1e2a3a;cursor:pointer;transition:background .12s}
+  .t-row:hover{background:#1a2235}
+  .t-row:first-child{border-top:none}
+  .threat-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+  .dot-critical{background:#f87171;box-shadow:0 0 6px #f87171}
+  .dot-high{background:#fbbf24;box-shadow:0 0 6px #fbbf24}
+  .dot-medium{background:#60a5fa;box-shadow:0 0 6px #60a5fa}
+  .dot-clean{background:#4ade80;box-shadow:0 0 6px #4ade80}
+  .t-name{font-size:13px;font-weight:500;color:#e2e8f0}
+  .t-target{font-size:12px;color:#64748b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .sev-pill{font-size:10px;padding:3px 10px;border-radius:20px;font-weight:700;text-align:center;letter-spacing:.04em}
+  .sev-critical{background:#450a0a;color:#fca5a5;border:1px solid #7f1d1d}
+  .sev-high{background:#451a03;color:#fcd34d;border:1px solid #78350f}
+  .sev-medium{background:#0c1a3a;color:#93c5fd;border:1px solid #1e3a5f}
+  .sev-low{background:#052e16;color:#86efac;border:1px solid #14532d}
+  .status-pill{font-size:10px;padding:3px 10px;border-radius:20px;font-weight:700;text-align:center}
+  .status-detected{background:#450a0a;color:#fca5a5;border:1px solid #7f1d1d}
+  .status-clean{background:#052e16;color:#86efac;border:1px solid #14532d}
+  .detail-row{padding:10px 16px 10px 56px;background:#12161f;border-top:1px solid #1e2a3a;font-size:12px;color:#94a3b8;display:none}
+  .detail-row.open{display:block}
+  .detail-icon{color:#f87171;margin-right:6px}
+
+  /* FOOTER */
+  .footer{display:flex;justify-content:space-between;align-items:center;padding:14px 32px;border-top:1px solid #1e2a3a;background:#161b27}
+  .footer-text{font-size:12px;color:#475569}
+
+  /* EMPTY STATE */
+  .empty{text-align:center;padding:48px 16px;color:#475569}
+  .empty-icon{font-size:36px;margin-bottom:12px}
+  .empty-text{font-size:14px}
+</style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="nav-brand">
+    <div class="nav-icon">
+      <svg viewBox="0 0 20 20"><path d="M10 2L3 5.5v5c0 4 2.8 7.5 7 8.5 4.2-1 7-4.5 7-8.5v-5L10 2z"/><path d="M7 10l2 2 4-4"/></svg>
+    </div>
+    <div>
+      <div class="nav-title">CyberShield</div>
+      <div class="nav-sub">Threat Intelligence Dashboard</div>
+    </div>
+  </div>
+  <div class="nav-right">
+    <span class="pill-live"><span class="live-dot"></span>Live</span>
+    <button class="btn btn-ghost" onclick="loadFromAPI()">Reload scans</button>
+    <button class="btn btn-primary" onclick="loadFromAPI()">Run all scans</button>
+  </div>
+</nav>
+
+<div class="metrics">
+  <div class="metric-card">
+    <div class="metric-label">Total scans</div>
+    <div class="metric-val" id="total-scans">0</div>
+    <div class="metric-trend">Active scan targets</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Threats detected</div>
+    <div class="metric-val danger" id="detected-count">0</div>
+    <div class="metric-trend">Requires attention</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">System clean</div>
+    <div class="metric-val success" id="clean-count">0</div>
+    <div class="metric-trend">No threats found</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Risk level</div>
+    <div class="metric-val warning" id="risk-level">—</div>
+    <div class="metric-trend" id="risk-pct">Calculating...</div>
+  </div>
+</div>
+
+<div class="risk-section">
+  <div class="risk-header">
+    <span>Threat exposure</span>
+    <span id="risk-pct-label">0%</span>
+  </div>
+  <div class="risk-track"><div class="risk-fill" id="risk-bar" style="width:0%"></div></div>
+</div>
+
+<div class="add-section">
+  <input class="scan-input" id="target-input" placeholder="Enter target — file path, URL, username, or input data..." />
+  <select class="scan-select" id="threat-type">
+    <option value="malware">Malware</option>
+    <option value="phishing">Phishing</option>
+    <option value="brute">Brute Force</option>
+    <option value="sql">SQL Injection</option>
+  </select>
+  <button class="btn btn-primary" onclick="addScan()">+ Add scan</button>
+</div>
+
+<div class="table-section">
+  <div class="table-header">
+    <span class="table-title">Scan results</span>
+    <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px" onclick="clearAll()">Clear all</button>
+  </div>
+  <div class="table-wrap">
+    <div class="t-head">
+      <div></div>
+      <div>Threat type</div>
+      <div>Target</div>
+      <div>Severity</div>
+      <div>Status</div>
+    </div>
+    <div id="scan-list">
+      <div class="empty">
+        <div class="empty-icon">&#128737;</div>
+        <div class="empty-text">No scans yet — click "Run all scans" to load results</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  <span class="footer-text" id="last-scan">Waiting for first scan...</span>
+  <span class="footer-text">CyberShield v1.0 &mdash; OOP Mini Project</span>
+</div>
+
+<script>
+const DANGEROUS_EXT=['.exe','.bat','.vbs','.ps1','.dll','.scr','.cmd'];
+const PHISH_KW=['login','verify','secure','update','bank','account','confirm','password'];
+const SQL_PAT=["'","--",";","DROP","SELECT","OR 1=1","UNION","INSERT","DELETE"];
+const TYPE_LABELS={malware:'Malware scan',phishing:'Phishing scan',brute:'Brute Force',sql:'SQL Injection'};
+
+let scans=[];
+let nextId=1;
+
+function detectThreat(s){
+  let detected=false,detail='',sev='LOW';
+  if(s.type==='malware'){
+    const ext=s.value.toLowerCase().match(/\.[a-z0-9]+$/)?.[0]||'';
+    detected=DANGEROUS_EXT.includes(ext);
+    if(detected){detail='Dangerous extension detected: '+ext;sev='HIGH';}
+  } else if(s.type==='phishing'){
+    const found=PHISH_KW.filter(k=>s.value.toLowerCase().includes(k));
+    detected=found.length>0;
+    if(detected){detail='Suspicious keywords in URL: '+found.slice(0,4).join(', ');sev='CRITICAL';}
+  } else if(s.type==='brute'){
+    const n=parseInt(s.value)||0;
+    detected=n>5;
+    if(detected){detail=n+' failed login attempts detected (threshold: 5)';sev='MEDIUM';}
+  } else if(s.type==='sql'){
+    const found=SQL_PAT.filter(p=>s.value.toUpperCase().includes(p.toUpperCase()));
+    detected=found.length>0;
+    if(detected){detail='Malicious SQL patterns found: '+found.slice(0,4).join(', ');sev='CRITICAL';}
+  }
+  return{detected,detail,sev};
+}
+
+function render(){
+  const list=document.getElementById('scan-list');
+  if(!scans.length){
+    list.innerHTML='<div class="empty"><div class="empty-icon">&#128737;</div><div class="empty-text">No scans yet — click "Run all scans" to load results</div></div>';
+    updateMetrics(0,0);return;
+  }
+  let html='',detected=0;
+  scans.forEach(s=>{
+    const r=s.detected!==undefined?{detected:s.detected,detail:s.detail||'',sev:s.sev||'LOW'}:detectThreat(s);
+    if(r.detected)detected++;
+    const dot=r.detected?(r.sev==='CRITICAL'?'dot-critical':r.sev==='HIGH'?'dot-high':'dot-medium'):'dot-clean';
+    html+=`<div class="t-row" onclick="toggleDetail(${s.id})">
+      <div class="threat-dot ${dot}"></div>
+      <div class="t-name">${TYPE_LABELS[s.type]||s.type}</div>
+      <div class="t-target">${s.target}</div>
+      <span class="sev-pill sev-${(r.sev||'low').toLowerCase()}">${r.sev||'LOW'}</span>
+      <span class="status-pill ${r.detected?'status-detected':'status-clean'}">${r.detected?'Detected':'Clean'}</span>
+    </div>`;
+    if(r.detected&&r.detail){
+      html+=`<div class="detail-row" id="detail-${s.id}"><span class="detail-icon">&#9888;</span>${r.detail}</div>`;
+    }
+  });
+  list.innerHTML=html;
+  updateMetrics(scans.length,detected);
+}
+
+function updateMetrics(total,detected){
+  document.getElementById('total-scans').textContent=total;
+  document.getElementById('detected-count').textContent=detected;
+  document.getElementById('clean-count').textContent=total-detected;
+  const pct=total?Math.round((detected/total)*100):0;
+  document.getElementById('risk-bar').style.width=pct+'%';
+  document.getElementById('risk-bar').style.background=pct>60?'#f87171':pct>30?'#fbbf24':'#4ade80';
+  document.getElementById('risk-pct-label').textContent=pct+'%';
+  const el=document.getElementById('risk-level');
+  const tr=document.getElementById('risk-pct');
+  if(!total){el.textContent='—';el.className='metric-val warning';tr.textContent='No data yet';return;}
+  if(pct>60){el.textContent='High';el.className='metric-val danger';tr.textContent=pct+'% threats found';}
+  else if(pct>30){el.textContent='Medium';el.className='metric-val warning';tr.textContent=pct+'% threats found';}
+  else{el.textContent='Low';el.className='metric-val success';tr.textContent=pct+'% threats found';}
+}
+
+function toggleDetail(id){
+  const el=document.getElementById('detail-'+id);
+  if(el)el.classList.toggle('open');
+}
+
+function addScan(){
+  const target=document.getElementById('target-input').value.trim();
+  const type=document.getElementById('threat-type').value;
+  if(!target)return;
+  let value=target;
+  if(type==='malware'){const m=target.match(/\.[a-zA-Z0-9]+$/);value=m?m[0]:target;}
+  scans.push({type,target,value,id:nextId++});
+  document.getElementById('target-input').value='';
+  document.getElementById('last-scan').textContent='Last scan: just now';
+  render();
+}
+
+function clearAll(){scans=[];render();}
+
+function loadFromAPI(){
+  document.getElementById('last-scan').textContent='Scanning...';
+  fetch('/api/scans')
+    .then(r=>r.json())
+    .then(data=>{
+      scans=data.map(s=>({
+        id:s.id||nextId++,
+        type:s.type,
+        target:s.target,
+        value:s.details||s.target,
+        detected:s.detected,
+        detail:s.details,
+        sev:s.severity
+      }));
+      document.getElementById('last-scan').textContent='Last scan: just now — '+scans.length+' targets scanned';
+      render();
+    })
+    .catch(()=>{
+      document.getElementById('last-scan').textContent='API not reachable — showing demo data';
+      loadDemoData();
+    });
+}
+
+function loadDemoData(){
+  const demo=[
+    {type:'malware', target:'C:/Windows/update.exe',   value:'.exe'},
+    {type:'malware', target:'C:/Downloads/report.pdf', value:'.pdf'},
+    {type:'phishing',target:'user@company.com',        value:'http://secure-bank-login-verify.com'},
+    {type:'phishing',target:'admin@company.com',       value:'https://newsletter.company.com'},
+    {type:'brute',   target:'admin@server',            value:'14'},
+    {type:'brute',   target:'user@server',             value:'2'},
+    {type:'sql',     target:'login_form',              value:"' OR 1=1; DROP TABLE users--"},
+    {type:'sql',     target:'search_bar',              value:'laptop bags'},
+  ];
+  scans=demo.map((s,i)=>({...s,id:i+1}));
+  render();
+}
+
+loadFromAPI();
+</script>
+</body>
+</html>
